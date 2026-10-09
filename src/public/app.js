@@ -1,0 +1,20 @@
+'use strict';
+let csrf = '';
+const $ = (s) => document.querySelector(s);
+function el(tag, text, cls) { const n = document.createElement(tag); if (text != null) n.textContent = text; if (cls) n.className = cls; return n; }
+function safeAddress(address) { try { const u = new URL(address); return ['http:', 'https:'].includes(u.protocol) && ['127.0.0.1','localhost','[::1]'].includes(u.hostname) ? u.href : ''; } catch { return ''; } }
+async function api(url, opts) { const r = await fetch(url, opts); const d = await r.json(); if (!r.ok) throw Error(d.error || `HTTP ${r.status}`); return d; }
+function render(state) {
+ csrf = state.csrfToken || csrf; const root = $('#services'); root.replaceChildren();
+ const groups = new Map(); (state.services || []).forEach(s => { const key = s.workspace || s.repository || 'Unassigned'; if (!groups.has(key)) groups.set(key, []); groups.get(key).push(s); });
+ if (!groups.size) root.append(el('div','No managed services found.','empty'));
+ groups.forEach((items, key) => { const card=el('article',null,'workspace'); const head=el('div',null,'workspace-head'); head.append(el('h2',key),el('div',safepath(items[0]))); card.append(head); items.forEach(s=>card.append(service(s))); root.append(card); });
+ const dr=$('#discovered'); dr.replaceChildren(); const found=state.discovered||[]; if (!found.length) dr.append(el('div','No unmanaged listeners detected.','empty')); found.forEach(s=>dr.append(listener(s)));
+}
+function safepath(s){ return el('div', `${s.repository ? 'Repository: '+s.repository+' · ' : ''}${s.temporary ? 'Temporary' : 'Retained'}`, 'path'); }
+function service(s){ const row=el('div',null,'service'); const info=el('div'); info.append(el('h3',s.service || s.name || s.key || `PID ${s.pid}`)); const details=el('div',null,'details'); details.append(el('span',s.status || 'unknown',`badge ${(s.status||'').toLowerCase()==='running'?'running':''}`)); if(!s.managed) details.append(el('span','Unmanaged','badge')); if(s.pid) details.append(el('span',`PID ${s.pid}`,'badge')); const addr=safeAddress(s.address || s.url); if(addr){const a=el('a',addr);a.href=addr;a.target='_blank';a.rel='noreferrer';details.append(a)} info.append(details); const actions=el('div',null,'actions'); if(s.managed){ ['stop','restart'].forEach(action=>{const b=el('button',action[0].toUpperCase()+action.slice(1));b.onclick=()=>act(s.key,action,b)}); const lb=el('button','Logs'); lb.onclick=()=>logs(s.key); actions.append(...[...actions.childNodes],lb); } row.append(info,actions); return row; }
+function listener(s){ const row=el('div',null,'listener'); row.append(el('div',`${s.address || s.host || ''} · PID ${s.pid}`)); const form=el('form',null,'associate'); const input=document.createElement('input'); input.placeholder='Workspace path'; input.required=true; input.setAttribute('aria-label','Workspace path'); const b=el('button','Associate'); form.append(input,b); form.onsubmit=e=>{e.preventDefault(); associate(s.pid,input.value,b)}; row.append(form); return row; }
+async function act(key, action, button){button.disabled=true;try{await api('/api/action',{method:'POST',headers:{'Content-Type':'application/json','X-CSRF-Token':csrf},body:JSON.stringify({key,action})}); msg(`${action} requested`); await refresh()}catch(e){msg(e.message,true)}finally{button.disabled=false}}
+async function associate(pid,workspace,b){b.disabled=true;try{await api('/api/associate',{method:'POST',headers:{'Content-Type':'application/json','X-CSRF-Token':csrf},body:JSON.stringify({pid,workspace})});msg('Service associated');await refresh()}catch(e){msg(e.message,true)}finally{b.disabled=false}}
+async function logs(key){try{const d=await api('/api/logs?key='+encodeURIComponent(key));$('#log-content').textContent=Array.isArray(d.logs)?d.logs.join('\n'):String(d.logs||'');$('#logs').showModal()}catch(e){msg(e.message,true)}}
+async function refresh(){try{render(await api('/api/state'))}catch(e){msg(e.message,true)}} function msg(t,err){const n=$('#message');n.textContent=t;n.className=err?'error':''} $('#refresh').onclick=refresh;$('#close-logs').onclick=()=>$('#logs').close(); refresh();

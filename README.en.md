@@ -22,8 +22,11 @@ The runnable core prototype supports:
 - text and JSON status output;
 - service logs, stop, restart, and delete commands;
 - keeping a managed service independent from the shell or agent command that started it.
+- using an atomic start lock so concurrent agents do not create duplicate instances for the same workspace and service;
+- checking Node.js, PM2, the registry directory, and the PM2 daemon with `doctor`.
+- a browser dashboard bound only to `127.0.0.1`, with service controls, logs, and unassigned listeners.
 
-Not implemented yet: a browser dashboard, discovery of arbitrary listening services, automatic port allocation, stable hostnames, automatic retries, and reboot recovery.
+Listener discovery, automatic port allocation, and bounded retries are supported; stable hostnames and automatic reboot recovery are still planned.
 
 ## Install
 
@@ -37,6 +40,16 @@ npm link
 ```
 
 `npm install` installs PM2. You can also run `node src/cli.js` without a global link, or set `PORT_MANAGER_PM2_BIN` to an existing PM2 executable.
+
+## Tests and CI
+
+Run the CLI test suite with:
+
+```bash
+npm test
+```
+
+The tests use an isolated temporary directory and a fake PM2 executable, so they do not modify your real PM2 daemon or `~/.project-services`. GitHub Actions runs `npm ci`, `npm run check`, `npm test`, and a package dry run on Node.js 24 across Ubuntu and macOS.
 
 ## Usage
 
@@ -53,6 +66,9 @@ project-services logs frontend
 project-services restart frontend
 project-services stop frontend
 project-services delete frontend
+project-services doctor
+project-services doctor --json
+project-services dashboard
 ```
 
 `--json` emits only machine-readable service data, so agents and scripts can parse it directly.
@@ -60,6 +76,10 @@ project-services delete frontend
 Service names only need to be unique within one workspace. Starting the same name again returns the existing instance instead of silently replacing its command.
 
 The registry defaults to `~/.project-services/services.json`; override it with `PORT_MANAGER_HOME`. Override the PM2 executable with `PORT_MANAGER_PM2_BIN`.
+
+`project-services dashboard` starts the dashboard on loopback and prints its URL; use `--port 1355` to choose a port. The dashboard binds only to `127.0.0.1`, enforces Host/Origin and CSRF checks; unassigned or manually associated services are read-only, and web actions are limited to stopping or restarting managed services. It never executes arbitrary shell commands from the browser.
+
+`start` holds an atomic lock while checking for an existing instance, starting PM2, and writing the registry. If two agents start the same service in one workspace at the same time, one of them reuses the instance created by the other. A leftover lock is removed only after its owner process is confirmed dead. `doctor --json` returns `{ok, checks}` for agents to validate the environment before starting.
 
 ## Agent integration
 
@@ -71,12 +91,13 @@ Copy the following block into a project's `AGENTS.md`. It tells an agent to reus
 When starting a local development server, use `project-services` from the repository workspace:
 
 1. Choose a stable service name such as `frontend`, `api`, or `worker`.
-2. Run `project-services start <name> -- <command>`.
-3. Run `project-services list --json` and report the returned status, workspace, PID, and address if one is available.
-4. If the service already exists, reuse the existing instance and report it instead of starting a duplicate.
-5. Treat ordinary frontend and API servers as retained services. Use `--temporary` only for short-lived checks.
-6. Do not stop or delete a retained service merely because your task is complete.
-7. If `project-services` or PM2 is missing, report the exact install command and wait for authorization before changing global tools.
+2. Run `project-services doctor --json` and report failed checks.
+3. Run `project-services start <name> -- <command>`.
+4. Run `project-services list --json` and report the returned status, workspace, PID, and address if one is available.
+5. If the service already exists, reuse the existing instance and report it instead of starting a duplicate.
+6. Treat ordinary frontend and API servers as retained services. Use `--temporary` only for short-lived checks.
+7. Do not stop or delete a retained service merely because your task is complete.
+8. If `project-services` or PM2 is missing, report the exact install command and wait for authorization before changing global tools.
 ```
 
 See [`docs/agent-prompt.md`](./docs/agent-prompt.md) for a longer one-shot prompt.
@@ -87,10 +108,8 @@ Discovering a listening port does not mean taking ownership of its process. The 
 
 ## Roadmap
 
-- browser dashboard grouped by workspace, with status, address, and recent logs;
-- listening-port discovery and unassigned services;
 - address probing, port-conflict diagnostics, and optional stable local hostnames;
-- bounded retries and reboot recovery;
+- automatic reboot recovery;
 - adapters for candidate backends such as Process Compose and Portless.
 
 ## Contributing

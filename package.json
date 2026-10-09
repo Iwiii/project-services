@@ -1,15 +1,49 @@
 {
-  "name": "trans-project-port-manager",
-  "version": "0.1.0",
-  "private": true,
+  "name": "@iwiii/project-services",
+  "version": "0.2.0",
+  "private": false,
   "type": "commonjs",
   "bin": {
     "project-services": "src/cli.js"
   },
   "scripts": {
-    "start": "node src/cli.js"
+    "start": "node src/cli.js",
+    "test": "node --test",
+    "check": "node scripts/check.js",
+    "prepack": "npm run check"
   },
   "dependencies": {
     "pm2": "^7.0.4"
+  },
+  "license": "MIT",
+  "description": "Workspace-aware local development service management for humans and coding agents",
+  "engines": {
+    "node": ">=24"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Iwiii/project-services.git"
+  },
+  "homepage": "https://github.com/Iwiii/project-services#readme",
+  "bugs": {
+    "url": "https://github.com/Iwiii/project-services/issues"
+  },
+  "files": [
+    "src",
+    "README.md",
+    "README.en.md",
+    "LICENSE",
+    "docs/agent-prompt.md"
+  ],
+  "keywords": [
+    "development",
+    "ports",
+    "pm2",
+    "agents",
+    "worktree"
+  ],
+  "publishConfig": {
+    "access": "public",
+    "registry": "https://registry.npmjs.org"
   }
 }
