@@ -55,6 +55,8 @@ project-services stop frontend
 project-services delete frontend
 ```
 
+`--json` emits only machine-readable service data, so agents and scripts can parse it directly.
+
 Service names only need to be unique within one workspace. Starting the same name again returns the existing instance instead of silently replacing its command.
 
 The registry defaults to `~/.project-services/services.json`; override it with `PORT_MANAGER_HOME`. Override the PM2 executable with `PORT_MANAGER_PM2_BIN`.

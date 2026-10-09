@@ -55,6 +55,8 @@ project-services stop frontend
 project-services delete frontend
 ```
 
+`--json` 输出只包含机器可读的服务数据，适合 Agent 或脚本直接解析。
+
 服务名称只需要在同一个工作区内唯一。再次启动同名服务会返回已有实例，不会静默替换启动命令。
 
 登记文件默认位于 `~/.project-services/services.json`，可用 `PORT_MANAGER_HOME` 覆盖。PM2 可执行文件可用 `PORT_MANAGER_PM2_BIN` 覆盖。

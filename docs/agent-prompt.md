@@ -10,7 +10,7 @@
 
 1. 先确认当前目录是目标 Git 工作区，并为每个长期运行的服务选择稳定名称，例如 `frontend`、`api`、`worker`。
 2. 启动本地开发服务时，使用 `project-services start <服务名> -- <启动命令>`，不要直接把服务放到普通 shell 后台。
-3. 启动后执行 `project-services list --json`，从结果中读取服务状态、工作区、PID 和可用的访问地址，并在回复中报告。
+3. 启动后执行 `project-services list --json`，将其作为唯一的机器可读状态来源，从结果中读取服务状态、工作区、PID 和可用的访问地址，并在回复中报告。
 4. 如果同一工作区已有同名服务，复用已有实例并报告它；不要为了“重新启动”而创建重复实例。
 5. 普通前端预览和 API 服务属于保留服务。任务完成时不要自动停止或删除它们。
 6. 只对一次性检查、临时代理或临时测试服务使用 `--temporary`。
@@ -38,7 +38,7 @@ Rules:
 
 1. Confirm the current directory is the target Git workspace and choose stable names such as `frontend`, `api`, or `worker` for long-running services.
 2. Start local development services with `project-services start <name> -- <command>` instead of leaving them in an ordinary shell background.
-3. After starting, run `project-services list --json`. Read the status, workspace, PID, and any available address from the result and report them.
+3. After starting, run `project-services list --json` as the machine-readable source of truth. Read the status, workspace, PID, and any available address from the result and report them.
 4. If the same service already exists in the workspace, reuse it and report it. Do not create a duplicate just to restart it.
 5. Ordinary frontend previews and API servers are retained services. Do not stop or delete them when your task ends.
 6. Use `--temporary` only for one-off checks, temporary proxies, or short-lived test services.

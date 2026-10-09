@@ -86,7 +86,12 @@ function start(args) {
     const result = { action: 'existing', key, workspace: workspacePath, service: options.serviceName, processName, status: running.pm2_env.status, pid: running.pid, temporary: existing?.temporary ?? options.temporary };
     return options.asJson ? json(result) : console.log(`${options.serviceName} already running (${processName})`);
   }
-  execFileSync(pm2, ['start', options.command, '--name', processName, '--cwd', cwd, '--time'], { stdio: 'inherit' });
+  const startArgs = ['start', options.command, '--name', processName, '--cwd', cwd, '--time'];
+  if (options.asJson) {
+    execFileSync(pm2, startArgs, { stdio: ['ignore', 'ignore', 'pipe'] });
+  } else {
+    execFileSync(pm2, startArgs, { stdio: 'inherit' });
+  }
   const entry = { key, workspace: workspacePath, cwd, service: options.serviceName, processName, command: options.command, temporary: options.temporary, managed: true, startedAt: new Date().toISOString() };
   registry.services[key] = entry;
   writeRegistry(registry);
